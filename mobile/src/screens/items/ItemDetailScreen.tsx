@@ -7,12 +7,13 @@ import {
   Alert,
   Image,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import {
   Text,
   Button,
   Portal,
-  Modal,
+  Modal as PaperModal,
   IconButton,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +22,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
-import apiService from '../../services/api';
+import apiService, { BASE_SERVER_URL } from '../../services/api';
 import { Item, Location, RootStackParamList } from '../../types';
 import { Card, Badge, LoadingSpinner } from '../../components/common';
 import { QRCodeLabel } from '../../components/QRCodeLabel';
@@ -64,6 +65,8 @@ export function ItemDetailScreen({ navigation, route }: ItemDetailScreenProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showQRLabel, setShowQRLabel] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string>('');
   const [moveToLocationId, setMoveToLocationId] = useState('');
   const [moving, setMoving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -407,11 +410,28 @@ export function ItemDetailScreen({ navigation, route }: ItemDetailScreenProps) {
             </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {item.photos.map((photo) => (
-                <View key={photo.id} style={styles.photoContainer}>
-                  <Image source={{ uri: photo.url }} style={styles.photo} />
-                </View>
-              ))}
+              {item.photos.map((photo) => {
+                const fullUrl = `${BASE_SERVER_URL}${photo.url}`;
+                console.log('Photo URL:', fullUrl);
+                return (
+                  <TouchableOpacity
+                    key={photo.id}
+                    style={styles.photoContainer}
+                    onPress={() => {
+                      console.log('Opening photo:', fullUrl);
+                      setSelectedPhotoUrl(fullUrl);
+                      setShowPhotoModal(true);
+                    }}
+                  >
+                    <Image
+                      source={{ uri: fullUrl }}
+                      style={styles.photo}
+                      onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
+                      onLoad={() => console.log('Image loaded successfully:', fullUrl)}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           )}
         </Card>
@@ -454,7 +474,7 @@ export function ItemDetailScreen({ navigation, route }: ItemDetailScreenProps) {
 
       {/* Move Modal */}
       <Portal>
-        <Modal
+        <PaperModal
           visible={showMoveModal}
           onDismiss={() => setShowMoveModal(false)}
           contentContainerStyle={styles.modalContent}
@@ -508,8 +528,42 @@ export function ItemDetailScreen({ navigation, route }: ItemDetailScreenProps) {
               Move Item
             </Button>
           </View>
-        </Modal>
+        </PaperModal>
       </Portal>
+
+      {/* Full Screen Photo Modal */}
+      <Modal
+        visible={showPhotoModal}
+        onRequestClose={() => setShowPhotoModal(false)}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.photoModalContent}>
+          <IconButton
+            icon="close"
+            iconColor={colors.white}
+            size={28}
+            onPress={() => setShowPhotoModal(false)}
+            style={styles.closeButton}
+          />
+          <TouchableOpacity
+            style={styles.photoModalContainer}
+            onPress={() => setShowPhotoModal(false)}
+            activeOpacity={0.9}
+          >
+            <Image
+              source={{ uri: selectedPhotoUrl }}
+              style={styles.fullScreenPhoto}
+              resizeMode="contain"
+              onError={(e) => {
+                console.log('Full screen image error:', e.nativeEvent.error);
+                console.log('Tried to load:', selectedPhotoUrl);
+              }}
+              onLoad={() => console.log('Full screen image loaded:', selectedPhotoUrl)}
+            />
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       {/* QR Code Label */}
       <QRCodeLabel
@@ -835,5 +889,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.slate[500],
     marginTop: spacing.md,
+  },
+  photoModalContent: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoModalContainer: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  fullScreenPhoto: {
+    width: '100%',
+    height: '80%',
   },
 });

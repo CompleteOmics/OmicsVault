@@ -71,9 +71,12 @@ export function DashboardScreen({ navigation }: DashboardScreenProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const [newLabName, setNewLabName] = useState('');
   const [newLabDescription, setNewLabDescription] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   const { user, signOut } = useAuthStore();
 
@@ -119,6 +122,27 @@ export function DashboardScreen({ navigation }: DashboardScreenProps) {
       Alert.alert('Error', 'Failed to create lab. Please try again.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleJoinLab = async () => {
+    if (!inviteCode.trim()) return;
+
+    setJoining(true);
+    try {
+      const result = await apiService.joinLabWithInvite(inviteCode.trim());
+      await fetchLabs(); // Refresh the lab list
+      setShowJoinModal(false);
+      setInviteCode('');
+      Alert.alert('Success', 'You have successfully joined the lab!');
+      if (result.lab?.id) {
+        navigation.navigate('Lab', { labId: result.lab.id });
+      }
+    } catch (error) {
+      console.error('Error joining lab:', error);
+      Alert.alert('Error', 'Invalid or expired invite code. Please try again.');
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -184,13 +208,24 @@ export function DashboardScreen({ navigation }: DashboardScreenProps) {
           ))}
         </View>
       ) : labs.length === 0 ? (
-        <EmptyState
-          icon="sparkles"
-          title="Welcome to OmicsVault"
-          description="Create your first lab to start organizing and tracking your inventory with powerful features designed for biotech researchers."
-          actionLabel="Create Your First Lab"
-          onAction={() => setShowCreateModal(true)}
-        />
+        <View style={styles.emptyStateContainer}>
+          <EmptyState
+            icon="sparkles"
+            title="Welcome to OmicsVault"
+            description="Create your first lab or join an existing lab using an invite code."
+            actionLabel="Create New Lab"
+            onAction={() => setShowCreateModal(true)}
+          />
+          <Button
+            mode="outlined"
+            onPress={() => setShowJoinModal(true)}
+            style={styles.joinButton}
+            labelStyle={styles.joinButtonLabel}
+            icon="ticket-outline"
+          >
+            Join with Invite Code
+          </Button>
+        </View>
       ) : (
         <FlatList
           data={labs}
@@ -283,6 +318,61 @@ export function DashboardScreen({ navigation }: DashboardScreenProps) {
               labelStyle={styles.createButtonLabel}
             >
               Create Lab
+            </Button>
+          </View>
+        </Modal>
+
+        {/* Join Lab Modal */}
+        <Modal
+          visible={showJoinModal}
+          onDismiss={() => setShowJoinModal(false)}
+          contentContainerStyle={styles.modalContent}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Join Lab</Text>
+            <TouchableOpacity onPress={() => setShowJoinModal(false)}>
+              <Ionicons name="close" size={24} color={colors.slate[500]} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalBody}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Invite Code</Text>
+              <TextInput
+                mode="outlined"
+                value={inviteCode}
+                onChangeText={setInviteCode}
+                placeholder="Enter the invite code"
+                style={styles.input}
+                outlineStyle={styles.inputOutline}
+                outlineColor={colors.slate[200]}
+                activeOutlineColor={colors.primary[500]}
+                autoCapitalize="none"
+              />
+              <Text style={styles.helpText}>
+                Ask your lab admin for an invite code to join their lab.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.modalFooter}>
+            <Button
+              mode="outlined"
+              onPress={() => setShowJoinModal(false)}
+              style={styles.cancelButton}
+              labelStyle={styles.cancelButtonLabel}
+            >
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleJoinLab}
+              loading={joining}
+              disabled={joining || !inviteCode.trim()}
+              style={styles.createButton}
+              labelStyle={styles.createButtonLabel}
+            >
+              Join Lab
             </Button>
           </View>
         </Modal>
@@ -526,5 +616,25 @@ const styles = StyleSheet.create({
   },
   createButtonLabel: {
     fontWeight: '600',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  joinButton: {
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    borderColor: colors.primary[500],
+  },
+  joinButtonLabel: {
+    color: colors.primary[500],
+    fontWeight: '600',
+  },
+  helpText: {
+    fontSize: 12,
+    color: colors.slate[500],
+    marginTop: spacing.xs,
   },
 });

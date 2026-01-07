@@ -14,8 +14,19 @@ import {
 
 // Configure the API base URL - update this for production
 const API_BASE_URL = __DEV__
-  ? 'http://localhost:3000/api'
+  ? 'http://10.0.0.213:3000/api'  // Your Mac's IP address on same WiFi
   : 'https://your-production-api.com/api';
+
+// Get base server URL by removing /api suffix
+const getBaseServerUrl = () => {
+  if (API_BASE_URL.endsWith('/api')) {
+    return API_BASE_URL.slice(0, -4);
+  }
+  return API_BASE_URL;
+};
+
+// Export the base server URL for constructing image URLs
+export const BASE_SERVER_URL = getBaseServerUrl();
 
 const TOKEN_KEY = 'auth_token';
 

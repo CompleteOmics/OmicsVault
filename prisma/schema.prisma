@@ -1,0 +1,196 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum ActivityType {
+  ITEM_CREATED
+  ITEM_UPDATED
+  ITEM_DELETED
+  ITEM_MOVED
+  QUANTITY_CHANGED
+  PHOTO_ADDED
+  PHOTO_DELETED
+  LOCATION_CREATED
+  LOCATION_UPDATED
+  LOCATION_DELETED
+  MEMBER_JOINED
+  MEMBER_REMOVED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  labMemberships  LabMember[]
+  createdItems    Item[]       @relation("ItemCreator")
+  updatedItems    Item[]       @relation("ItemUpdater")
+  activities      Activity[]
+  movements       Movement[]
+  reservations    Reservation[]
+}
+
+model Lab {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  members     LabMember[]
+  items       Item[]
+  locations   Location[]
+  invites     Invite[]
+  activities  Activity[]
+}
+
+model LabMember {
+  id        String   @id @default(cuid())
+  role      Role     @default(MEMBER)
+  joinedAt  DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  labId     String
+  lab       Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, labId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  expiresAt   DateTime
+  maxUses     Int?      // null = unlimited
+  usedCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  labId       String
+  lab         Lab       @relation(fields: [labId], references: [id], onDelete: Cascade)
+}
+
+model Location {
+  id          String      @id @default(cuid())
+  name        String
+  type        String      // "Room", "Freezer", "Shelf", "Box"
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  parentId    String?
+  parent      Location?   @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Location[]  @relation("LocationHierarchy")
+
+  labId       String
+  lab         Lab         @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  items       Item[]
+  movementsFrom Movement[] @relation("MovementFrom")
+  movementsTo   Movement[] @relation("MovementTo")
+}
+
+model Item {
+  id              String    @id @default(cuid())
+  name            String
+  category        String?
+  vendor          String?
+  catalogNumber   String?
+  lotNumber       String?
+  quantity        Float     @default(0)
+  unit            String?
+  minQuantity     Float?    // low-stock threshold
+  expirationDate  DateTime? // expiration tracking
+  openedDate      DateTime? // when item was first opened
+  remarks         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  labId           String
+  lab             Lab       @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  locationId      String
+  location        Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  createdById     String
+  createdBy       User      @relation("ItemCreator", fields: [createdById], references: [id])
+
+  lastUpdatedById String?
+  lastUpdatedBy   User?     @relation("ItemUpdater", fields: [lastUpdatedById], references: [id])
+
+  photos          Photo[]
+  movements       Movement[]
+  reservations    Reservation[]
+}
+
+model Photo {
+  id          String   @id @default(cuid())
+  filename    String
+  url         String
+  caption     String?
+  createdAt   DateTime @default(now())
+
+  itemId      String
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model Movement {
+  id          String    @id @default(cuid())
+  quantity    Float?    // if moving partial quantity
+  movedAt     DateTime  @default(now())
+  notes       String?
+
+  itemId      String
+  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  fromLocationId String
+  fromLocation   Location @relation("MovementFrom", fields: [fromLocationId], references: [id])
+
+  toLocationId   String
+  toLocation     Location @relation("MovementTo", fields: [toLocationId], references: [id])
+
+  movedById   String
+  movedBy     User      @relation(fields: [movedById], references: [id])
+}
+
+model Activity {
+  id          String        @id @default(cuid())
+  type        ActivityType
+  description String
+  metadata    Json?         // flexible field for additional data
+  createdAt   DateTime      @default(now())
+
+  labId       String
+  lab         Lab           @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+}
+
+model Reservation {
+  id          String    @id @default(cuid())
+  purpose     String?   // Why they need it (e.g., "qPCR experiment")
+  estimatedUse DateTime? // When they plan to use it
+  createdAt   DateTime  @default(now())
+
+  itemId      String
+  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+}

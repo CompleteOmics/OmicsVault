@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(brew:*)",
+      "Bash(/opt/homebrew/opt/node@20/bin/node --version)",
+      "Bash(/opt/homebrew/opt/node@20/bin/npm --version)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@20/bin:$PATH\")",
+      "Bash(npm run db:seed:*)",
+      "Bash(npm run dev:*)",
+      "Bash(xcrun simctl boot:*)",
+      "Bash(open:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(cat:*)",
+      "Bash(npm start)",
+      "Bash(npx expo run:ios)",
+      "Bash(ls:*)",
+      "Bash(xargs basename:*)"
+    ]
+  }
+}

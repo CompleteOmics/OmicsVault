@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "OmicsVault",
+    "slug": "omicsvault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0C88F1"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.completeomics.omicsvault",
+      "infoPlist": {
+        "NSCameraUsageDescription": "OmicsVault uses the camera to capture photos of lab items and scan QR codes.",
+        "NSPhotoLibraryUsageDescription": "OmicsVault needs access to your photos to upload item images."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0C88F1"
+      },
+      "package": "com.completeomics.omicsvault",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow OmicsVault to access your camera to capture photos of lab items and scan QR codes."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow OmicsVault to access your photos to upload item images."
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}
